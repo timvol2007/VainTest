@@ -10,11 +10,15 @@ if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
--- Load core systems
+-- FIX: Use the global loader instead of script.Parent
 print("[Framework] Loading core systems...")
-print(script.Parent)
-local Signal = require(script.Parent.core.signal)
-print("Worked")
+local Signal = LoadRemoteModule("core/signal") 
+
+if Signal then
+    print("Worked! Signal module loaded.")
+else
+    error("Failed to load Signal module via LoadRemoteModule")
+end
 --local Signal = require(game:GetService("ServerScriptService"):FindFirstChild("signal") or error("signal module not found"))
 
 -- Note: In a real setup, you'd be loading from actual ModuleScripts in the game
