@@ -1,6 +1,5 @@
 --[[
-    Signal.lua - Simple event/signal system for pubsub communication
-    Allows components to communicate without direct references
+    Signal.lua - Simple event signal system
 ]]
 
 local Signal = {}
@@ -14,9 +13,9 @@ end
 
 function Signal:Connect(callback)
     local connection = {
-        _callback = callback,
         _signal = self,
-        Connected = true
+        _callback = callback,
+        Connected = true,
     }
     
     function connection:Disconnect()
@@ -49,6 +48,12 @@ function Signal:Wait()
         task.spawn(thread, ...)
     end)
     return coroutine.yield()
+end
+
+function Signal:Disconnect()
+    for _, connection in ipairs(self._connections) do
+        connection:Disconnect()
+    end
 end
 
 return Signal
