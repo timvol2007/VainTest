@@ -92,7 +92,7 @@ local Theme = {
     
     -- Fonts
     Fonts = {
-        Default = Enum.Font.GothamSSm,
+        Default = Enum.Font.Arial,
         Bold = Enum.Font.GothamBold,
         Mono = Enum.Font.RobotoMono,
     },
