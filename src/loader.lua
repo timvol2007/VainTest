@@ -1,3 +1,5 @@
+getgenv().REPO_URL = "https://raw.githubusercontent.com/timvol2007/VainTest/main/src"
+
 getgenv().LoadRemoteModule = function(modulePath)
     local url = getgenv().REPO_URL .. "/" .. modulePath .. ".lua"
     local success, result = pcall(game.HttpGet, game, url)
