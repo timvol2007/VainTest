@@ -2,16 +2,19 @@
     Main UI Controller - Builds and manages the entire UI interface
 ]]
 
-local Theme = require(script.Parent.theme)
-local Animations = require(script.Parent.animations)
-local Signal = require(script.Parent.Parent.core.signal)
-local ModuleManager = require(script.Parent.Parent.modules.moduleManager)
+-- Use the global loader instead of require(script.Parent...)
+local Theme = LoadRemoteModule("ui/theme")
+local Animations = LoadRemoteModule("ui/animations")
+local Slider = LoadRemoteModule("ui/components/slider")
+local Toggle = LoadRemoteModule("ui/components/toggle")
+local Keybind = LoadRemoteModule("ui/components/keybind")
 
-local Slider = require(script.Parent.components.slider)
-local Toggle = require(script.Parent.components.toggle)
-local Keybind = require(script.Parent.components.keybind)
+-- These are already loaded in init.lua, so you could also grab them from getgenv()
+local Signal = getgenv().ExploitFramework.Signal
+local ModuleManager = getgenv().ExploitFramework.ModuleManager
 
 local UIMain = {}
+-- ... rest of your code ...
 
 function UIMain:CreateUI(moduleCategories)
     -- Create main screen gui
