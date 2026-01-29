@@ -12,6 +12,7 @@ end
 
 -- Load core systems
 print("[Framework] Loading core systems...")
+print(script.Parent)
 local Signal = require(script.Parent.core.signal)
 --local Signal = require(game:GetService("ServerScriptService"):FindFirstChild("signal") or error("signal module not found"))
 
