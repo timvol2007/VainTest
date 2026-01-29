@@ -2,9 +2,10 @@
     Toggle Component - Toggle switch with smooth animation
 ]]
 
-local Animations = require(script.Parent.Parent.ui.animations)
-local Theme = require(script.Parent.Parent.ui.theme)
-local Signal = require(script.Parent.Parent.core.signal)
+local Animations = LoadRemoteModule("ui/animations")
+local Theme = LoadRemoteModule("ui/theme")
+local Utilities = LoadRemoteModule("core/utilities")
+local Signal = LoadRemoteModule("core/signal")
 
 local Toggle = {}
 Toggle.__index = Toggle
