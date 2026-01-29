@@ -527,7 +527,7 @@ function UIMain:SelectCategorySimple(categoryName)
 end
 
 -- Create and show UI
-local uiMain = UIMain:new()
+local uiMain = UIMain.new()
 local categories = ModuleManager:GetCategories()
 local screenGui = UIMain:CreateUI(categories)
 
