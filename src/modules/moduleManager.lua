@@ -2,8 +2,8 @@
     Module Manager - Auto-discovers and manages all modules
 ]]
 
-local Signal = require(script.Parent.Parent.core.signal)
-local Utilities = require(script.Parent.Parent.core.utilities)
+local Utilities = LoadRemoteModule("core/utilities")
+local Signal = LoadRemoteModule("core/signal")
 
 local ModuleManager = {}
 ModuleManager.modules = {}
