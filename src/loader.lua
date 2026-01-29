@@ -14,6 +14,7 @@ local function LoadRemoteModule(modulePath)
     end)
     
     if success then
+        print("File exists")
         local chunk, loadErr = loadstring(result)
         if not chunk then
             warn("[Loader] Failed to load " .. modulePath .. ": " .. loadErr)
