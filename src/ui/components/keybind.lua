@@ -3,10 +3,10 @@
 ]]
 
 local UserInputService = game:GetService("UserInputService")
-local Animations = require(script.Parent.Parent.ui.animations)
-local Theme = require(script.Parent.Parent.ui.theme)
-local Utilities = require(script.Parent.Parent.core.utilities)
-local Signal = require(script.Parent.Parent.core.signal)
+local Animations = LoadRemoteModule("ui/animations")
+local Theme = LoadRemoteModule("ui/theme")
+local Utilities = LoadRemoteModule("core/utilities")
+local Signal = LoadRemoteModule("core/signal")
 
 local Keybind = {}
 Keybind.__index = Keybind
