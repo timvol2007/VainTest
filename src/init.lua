@@ -361,6 +361,15 @@ print("[Framework] Creating UI...")
 -- Create UI inline (simplified version)
 local UIMain = {}
 
+-- Add this constructor
+function UIMain.new()
+    local self = setmetatable({}, { __index = UIMain })
+    -- Initialize any instance-specific variables here
+    self.categoryButtons = {}
+    self.contentFrames = {}
+    return self
+end
+
 function UIMain:CreateUI(moduleCategories)
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "ExploitUI"
