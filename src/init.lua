@@ -404,7 +404,7 @@ function UIMain:CreateUI(moduleCategories)
     titleText.Size = UDim2.new(0.7, 0, 1, 0)
     titleText.Position = UDim2.new(0, 15, 0, 0)
     titleText.BackgroundTransparency = 1
-    titleText.Text = "Exploit Framework"
+    titleText.Text = "Vain"
     titleText.TextColor3 = Theme.Colors.TextPrimary
     titleText.TextSize = Theme.Sizes.TextSizeTitle
     titleText.Font = Theme.Fonts.Bold
