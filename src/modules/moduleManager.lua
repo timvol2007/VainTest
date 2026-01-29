@@ -1,205 +1,120 @@
 --[[
-    Module Manager - Auto-discovers and manages all modules
+    Module Manager - Manages all framework modules
 ]]
 
-local Utilities = LoadRemoteModule("core/utilities")
-local Signal = LoadRemoteModule("core/signal")
-
 local ModuleManager = {}
-ModuleManager.modules = {}
-ModuleManager.categories = {}
-ModuleManager.ModuleEnabled = Signal.new()
-ModuleManager.ModuleDisabled = Signal.new()
-ModuleManager.SettingChanged = Signal.new()
+ModuleManager.__index = ModuleManager
 
--- Load all modules from the modules folder
-function ModuleManager:LoadAllModules(modulesFolder)
+local registeredModules = {}
+local moduleInstances = {}
+
+function ModuleManager.new()
+    local self = setmetatable({}, ModuleManager)
     self.modules = {}
     self.categories = {}
-    
-    -- Get all category folders
-    for _, categoryFolder in ipairs(modulesFolder:GetChildren()) do
-        if categoryFolder:IsA("Folder") then
-            local categoryName = categoryFolder.Name
-            self.categories[categoryName] = {}
-            
-            -- Get all module files in this category
-            for _, moduleFile in ipairs(categoryFolder:GetChildren()) do
-                if moduleFile:IsA("ModuleScript") then
-                    local moduleName = moduleFile.Name
-                    local success, moduleData = pcall(require, moduleFile)
-                    
-                    if success and moduleData then
-                        -- Store module with full context
-                        moduleData._scriptRef = moduleFile
-                        moduleData._categoryName = categoryName
-                        
-                        -- Initialize the module
-                        if moduleData.Initialize then
-                            moduleData:Initialize()
-                        end
-                        
-                        self.modules[moduleName] = moduleData
-                        table.insert(self.categories[categoryName], {
-                            Name = moduleData.Name or moduleName,
-                            Key = moduleName,
-                            Module = moduleData,
-                        })
-                        
-                        print("[ModuleManager] Loaded module: " .. moduleName .. " (" .. categoryName .. ")")
-                    else
-                        warn("[ModuleManager] Failed to load module: " .. moduleName)
-                    end
-                end
-            end
+    return self
+end
+
+function ModuleManager:RegisterModule(moduleName, category, moduleConfig)
+    if not self.modules[moduleName] then
+        self.modules[moduleName] = {
+            Name = moduleConfig.Name or moduleName,
+            Category = category,
+            Settings = moduleConfig.Settings or {},
+            _state = moduleConfig._state or { isActive = false },
+            Initialize = moduleConfig.Initialize or function() end,
+            Enable = moduleConfig.Enable or function() end,
+            Disable = moduleConfig.Disable or function() end,
+            Destroy = moduleConfig.Destroy or function() end,
+            Update = moduleConfig.Update or function() end,
+            OnSettingChanged = moduleConfig.OnSettingChanged or function() end,
+        }
+        
+        -- Initialize category if it doesn't exist
+        if not self.categories[category] then
+            self.categories[category] = {}
+        end
+        
+        -- Add to category
+        table.insert(self.categories[category], moduleName)
+        
+        -- Call initialize
+        if self.modules[moduleName].Initialize then
+            self.modules[moduleName]:Initialize()
+        end
+        
+        print("[ModuleManager] Registered module: " .. moduleName .. " in category: " .. category)
+    else
+        warn("[ModuleManager] Module " .. moduleName .. " already registered!")
+    end
+end
+
+function ModuleManager:GetCategories()
+    local result = {}
+    for category, modules in pairs(self.categories) do
+        result[category] = {}
+        for _, moduleName in ipairs(modules) do
+            result[category][moduleName] = self.modules[moduleName]
         end
     end
-    
-    return self.categories
+    return result
 end
 
--- Get all categories
-function ModuleManager:GetCategories()
-    return self.categories
+function ModuleManager:GetModule(moduleName)
+    return self.modules[moduleName]
 end
 
--- Get modules in a specific category
-function ModuleManager:GetCategoryModules(categoryName)
-    return self.categories[categoryName] or {}
-end
-
--- Enable a module
 function ModuleManager:EnableModule(moduleName)
     local module = self.modules[moduleName]
-    if not module then
+    if module then
+        module._state.isActive = true
+        if module.Enable then
+            module:Enable()
+        end
+        print("[ModuleManager] Enabled: " .. moduleName)
+    else
         warn("[ModuleManager] Module not found: " .. moduleName)
-        return false
     end
-    
-    if module._state.isActive then
-        return true -- Already enabled
-    end
-    
-    module._state.isActive = true
-    
-    if module.Enable then
-        module:Enable()
-    end
-    
-    -- Start update loop
-    if module.Update then
-        local RunService = game:GetService("RunService")
-        module._state.updateConnection = RunService.Heartbeat:Connect(function()
-            if module._state.isActive and module.Update then
-                module:Update()
-            end
-        end)
-    end
-    
-    self.ModuleEnabled:Fire(moduleName)
-    return true
 end
 
--- Disable a module
 function ModuleManager:DisableModule(moduleName)
     local module = self.modules[moduleName]
-    if not module then
-        warn("[ModuleManager] Module not found: " .. moduleName)
-        return false
-    end
-    
-    if not module._state.isActive then
-        return true -- Already disabled
-    end
-    
-    module._state.isActive = false
-    
-    if module.Disable then
-        module:Disable()
-    end
-    
-    -- Stop update loop
-    if module._state.updateConnection then
-        module._state.updateConnection:Disconnect()
-        module._state.updateConnection = nil
-    end
-    
-    self.ModuleDisabled:Fire(moduleName)
-    return true
-end
-
--- Toggle a module
-function ModuleManager:ToggleModule(moduleName)
-    local module = self.modules[moduleName]
-    if not module then return false end
-    
-    if module._state.isActive then
-        return self:DisableModule(moduleName)
+    if module then
+        module._state.isActive = false
+        if module.Disable then
+            module:Disable()
+        end
+        print("[ModuleManager] Disabled: " .. moduleName)
     else
-        return self:EnableModule(moduleName)
+        warn("[ModuleManager] Module not found: " .. moduleName)
     end
 end
 
--- Update a module setting
 function ModuleManager:UpdateModuleSetting(moduleName, settingName, newValue)
     local module = self.modules[moduleName]
-    if not module then
-        warn("[ModuleManager] Module not found: " .. moduleName)
-        return false
+    if module and module.Settings[settingName] then
+        module.Settings[settingName].value = newValue
+        if module.OnSettingChanged then
+            module:OnSettingChanged(settingName, newValue)
+        end
+        print("[ModuleManager] Updated " .. moduleName .. "." .. settingName .. " = " .. tostring(newValue))
     end
-    
-    if not module.Settings[settingName] then
-        warn("[ModuleManager] Setting not found: " .. settingName)
-        return false
-    end
-    
-    -- Update the setting value
-    module.Settings[settingName].value = newValue
-    
-    -- Call the callback
-    if module.OnSettingChanged then
-        module:OnSettingChanged(settingName, newValue)
-    end
-    
-    self.SettingChanged:Fire(moduleName, settingName, newValue)
-    return true
 end
 
--- Get module settings
-function ModuleManager:GetModuleSettings(moduleName)
-    local module = self.modules[moduleName]
-    if not module then return nil end
-    return module.Settings
-end
-
--- Get specific setting
 function ModuleManager:GetSetting(moduleName, settingName)
     local module = self.modules[moduleName]
-    if not module or not module.Settings[settingName] then
-        return nil
+    if module and module.Settings[settingName] then
+        return module.Settings[settingName].value
     end
-    return module.Settings[settingName].value
+    return nil
 end
 
--- Check if module is enabled
-function ModuleManager:IsModuleEnabled(moduleName)
-    local module = self.modules[moduleName]
-    if not module then return false end
-    return module._state.isActive
-end
-
--- Cleanup all modules
 function ModuleManager:DestroyAll()
     for moduleName, module in pairs(self.modules) do
-        if module._state.updateConnection then
-            module._state.updateConnection:Disconnect()
-        end
         if module.Destroy then
             module:Destroy()
         end
     end
-    self.modules = {}
-    self.categories = {}
 end
 
 return ModuleManager
