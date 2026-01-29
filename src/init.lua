@@ -12,7 +12,8 @@ end
 
 -- Load core systems
 print("[Framework] Loading core systems...")
-local Signal = require(game:GetService("ServerScriptService"):FindFirstChild("signal") or error("signal module not found"))
+local Signal = script.parent.core.signal.lua
+--local Signal = require(game:GetService("ServerScriptService"):FindFirstChild("signal") or error("signal module not found"))
 
 -- Note: In a real setup, you'd be loading from actual ModuleScripts in the game
 -- For this framework, we'll create the necessary modules in memory
