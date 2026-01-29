@@ -4,7 +4,7 @@
 ]]
 
 -- GitHub repository base URL (change this to your repo)
-local REPO_URL = "https://raw.githubusercontent.com/timvol2007/VainTest/main/src"
+local REPO_URL = "https://raw.githubusercontent.com/timvol2007/VainTest/main/src/loader.lua"
 
 -- Function to safely load remote modules
 local function LoadRemoteModule(modulePath)
