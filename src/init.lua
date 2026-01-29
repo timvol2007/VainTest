@@ -189,7 +189,7 @@ local Theme = {
         Slow = 0.5,
     },
     Fonts = {
-        Default = Enum.Font.GothamSSm,
+        Default = Enum.Font.SourceSans,
         Bold = Enum.Font.GothamBold,
         Mono = Enum.Font.RobotoMono,
     },
