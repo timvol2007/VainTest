@@ -1,20 +1,23 @@
 --[[
-    Main UI Controller - Builds and manages the entire UI interface
+    Main UI Controller - Complete rewrite
+    - Uses Slider, Toggle, Keybind components
+    - Proper module display with working dropdowns
+    - Wider landscape layout
+    - Smooth animations and clean design
 ]]
 
--- Use the global loader instead of require(script.Parent...)
-local Theme = LoadRemoteModule("ui/theme")
-local Animations = LoadRemoteModule("ui/animations")
-local Slider = LoadRemoteModule("ui/components/slider")
-local Toggle = LoadRemoteModule("ui/components/toggle")
-local Keybind = LoadRemoteModule("ui/components/keybind")
+local Theme = require(script.Parent.theme)
+local Animations = require(script.Parent.animations)
+local Signal = require(script.Parent.Parent.core.signal)
+local ModuleManager = require(script.Parent.Parent.modules.moduleManager)
 
--- These are already loaded in init.lua, so you could also grab them from getgenv()
-local Signal = getgenv().ExploitFramework.Signal
-local ModuleManager = getgenv().ExploitFramework.ModuleManager
+local Slider = require(script.Parent.components.slider)
+local Toggle = require(script.Parent.components.toggle)
+local Keybind = require(script.Parent.components.keybind)
 
 local UIMain = {}
--- ... rest of your code ...
+UIMain.modules = {}
+UIMain.expandedModules = {}
 
 function UIMain:CreateUI(moduleCategories)
     -- Create main screen gui
@@ -22,20 +25,13 @@ function UIMain:CreateUI(moduleCategories)
     screenGui.Name = "ExploitUI"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.Parent = game:GetService("CoreGui")
     
-    -- Detect parent based on executor
-    local parent = game:GetService("CoreGui")
-    if parent:FindFirstChild("RobloxGui") then
-        parent = parent:FindFirstChild("RobloxGui")
-    end
-    
-    screenGui.Parent = parent
-    
-    -- Main window frame (centered, draggable)
+    -- Main window frame - WIDER LANDSCAPE
     local mainWindow = Instance.new("Frame")
     mainWindow.Name = "MainWindow"
-    mainWindow.Size = UDim2.new(0, Theme.Sizes.WindowWidth, 0, Theme.Sizes.WindowHeight)
-    mainWindow.Position = UDim2.new(0.5, -Theme.Sizes.WindowWidth / 2, 0.5, -Theme.Sizes.WindowHeight / 2)
+    mainWindow.Size = UDim2.new(0, 800, 0, 480)  -- Wider: 800x480 instead of 450x600
+    mainWindow.Position = UDim2.new(0.5, -400, 0.5, -240)  -- Centered
     mainWindow.BackgroundColor3 = Theme.Colors.Surface
     mainWindow.BorderSizePixel = 0
     mainWindow.Parent = screenGui
@@ -107,10 +103,10 @@ function UIMain:CreateUI(moduleCategories)
     container.BackgroundTransparency = 1
     container.Parent = mainWindow
     
-    -- Sidebar (categories)
+    -- Sidebar (categories) - NARROWER NOW
     local sidebar = Instance.new("Frame")
     sidebar.Name = "Sidebar"
-    sidebar.Size = UDim2.new(0, Theme.Sizes.SidebarWidth, 1, 0)
+    sidebar.Size = UDim2.new(0, 140, 1, 0)  -- Narrower sidebar for wider layout
     sidebar.BackgroundColor3 = Theme.Colors.Background
     sidebar.BorderSizePixel = 0
     sidebar.Parent = container
@@ -131,8 +127,8 @@ function UIMain:CreateUI(moduleCategories)
     -- Content panel
     local contentPanel = Instance.new("Frame")
     contentPanel.Name = "ContentPanel"
-    contentPanel.Size = UDim2.new(1, -Theme.Sizes.SidebarWidth, 1, 0)
-    contentPanel.Position = UDim2.new(0, Theme.Sizes.SidebarWidth, 0, 0)
+    contentPanel.Size = UDim2.new(1, -140, 1, 0)
+    contentPanel.Position = UDim2.new(0, 140, 0, 0)
     contentPanel.BackgroundColor3 = Theme.Colors.Surface
     contentPanel.BorderSizePixel = 0
     contentPanel.Parent = container
@@ -308,30 +304,17 @@ function UIMain:CreateModuleUI(parent, moduleData, layoutOrder)
     
     -- Toggle state
     local isExpanded = false
-    local dropdownContainer = nil
     
-    -- Module toggle (on module button click)
+    -- Module toggle (on module button click) - Toggle the module on/off
     moduleBtn.MouseButton1Click:Connect(function()
         ModuleManager:ToggleModule(moduleName)
         local isEnabled = ModuleManager:IsModuleEnabled(moduleName)
         
         -- Update visual feedback
-        Animations.ColorTween(moduleContainer, isEnabled and Theme.Colors.Primary or Theme.Colors.Elevated, 0.2)
-    end)
-    
-    -- Expand/collapse settings
-    arrowBtn.MouseButton1Click:Connect(function()
-        isExpanded = not isExpanded
-        
-        if isExpanded then
-            self:CreateDropdownSettings(moduleContainer, module, moduleName)
-            Animations.Tween(arrowBtn, {Rotation = 180}, 0.2)
+        if isEnabled then
+            Animations.ColorTween(moduleContainer, Theme.Colors.Primary, 0.2)
         else
-            if dropdownContainer then
-                dropdownContainer:Destroy()
-                dropdownContainer = nil
-            end
-            Animations.Tween(arrowBtn, {Rotation = 0}, 0.2)
+            Animations.ColorTween(moduleContainer, Theme.Colors.Elevated, 0.2)
         end
     end)
     
@@ -347,17 +330,44 @@ function UIMain:CreateModuleUI(parent, moduleData, layoutOrder)
             Animations.ColorTween(moduleContainer, Theme.Colors.Elevated, 0.15)
         end
     end)
+    
+    -- Expand/collapse settings on arrow click
+    arrowBtn.MouseButton1Click:Connect(function()
+        isExpanded = not isExpanded
+        
+        if isExpanded then
+            self:CreateDropdownSettings(moduleContainer, module, moduleName)
+            Animations.Tween(arrowBtn, {Rotation = 180}, 0.2)
+        else
+            -- Remove existing dropdown
+            local dropdown = moduleContainer.Parent:FindFirstChild("Dropdown_" .. moduleName)
+            if dropdown then
+                dropdown:Destroy()
+            end
+            Animations.Tween(arrowBtn, {Rotation = 0}, 0.2)
+        end
+    end)
+    
+    -- Store for tracking
+    self.modules[moduleName] = {
+        container = moduleContainer,
+        expanded = false
+    }
 end
 
 function UIMain:CreateDropdownSettings(moduleContainer, module, moduleName)
+    -- Get parent container for proper sizing
+    local parentContainer = moduleContainer.Parent
+    
     -- Create dropdown container below module
     local dropdownContainer = Instance.new("Frame")
     dropdownContainer.Name = "Dropdown_" .. moduleName
-    dropdownContainer.Size = UDim2.new(1, 0, 0, 200)
-    dropdownContainer.Position = UDim2.new(0, 0, 1, 0)
+    dropdownContainer.Size = UDim2.new(1, 0, 0, 50)  -- Start small, will expand
+    dropdownContainer.Position = UDim2.new(0, 0, 1, Theme.Sizes.ItemSpacing)
     dropdownContainer.BackgroundColor3 = Theme.Colors.Background
     dropdownContainer.BorderSizePixel = 0
-    dropdownContainer.Parent = moduleContainer.Parent
+    dropdownContainer.ClipsDescendants = true
+    dropdownContainer.Parent = parentContainer
     
     -- Dropdown content scroll
     local dropdownScroll = Instance.new("ScrollingFrame")
@@ -385,10 +395,10 @@ function UIMain:CreateDropdownSettings(moduleContainer, module, moduleName)
     settingsPadding.PaddingBottom = UDim.new(0, 10)
     settingsPadding.Parent = dropdownScroll
     
-    -- Create UI for each setting
+    -- Create UI for each setting (SKIP "enabled" as that's the main toggle)
     local settingIndex = 0
     for settingName, settingConfig in pairs(module.Settings) do
-        if settingName ~= "enabled" then -- Skip enabled toggle as it's the main button
+        if settingName ~= "enabled" then
             settingIndex = settingIndex + 1
             self:CreateSettingComponent(dropdownScroll, moduleName, settingName, settingConfig, settingIndex)
         end
@@ -396,12 +406,9 @@ function UIMain:CreateDropdownSettings(moduleContainer, module, moduleName)
     
     -- Update dropdown size based on content
     settingsList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        dropdownContainer.Size = UDim2.new(1, 0, 0, settingsList.AbsoluteContentSize.Y + 20)
+        local newHeight = settingsList.AbsoluteContentSize.Y + 20
+        dropdownContainer.Size = UDim2.new(1, 0, 0, newHeight)
     end)
-    
-    -- Animate in
-    dropdownContainer.Size = UDim2.new(1, 0, 0, 0)
-    Animations.SlideDown(dropdownContainer, UDim2.new(1, 0, 0, 0), UDim2.new(1, 0, 0, 200), 0.3)
 end
 
 function UIMain:CreateSettingComponent(parent, moduleName, settingName, settingConfig, layoutOrder)
@@ -409,16 +416,19 @@ function UIMain:CreateSettingComponent(parent, moduleName, settingName, settingC
     
     if settingType == "slider" then
         local slider = Slider.new(parent, settingConfig.min, settingConfig.max, settingConfig.value, settingName, settingConfig.description)
+        slider.Container.LayoutOrder = layoutOrder
         slider.ValueChanged:Connect(function(newValue)
             ModuleManager:UpdateModuleSetting(moduleName, settingName, newValue)
         end)
     elseif settingType == "toggle" then
         local toggle = Toggle.new(parent, settingConfig.value, settingName, settingConfig.description)
+        toggle.Container.LayoutOrder = layoutOrder
         toggle.ValueChanged:Connect(function(newValue)
             ModuleManager:UpdateModuleSetting(moduleName, settingName, newValue)
         end)
     elseif settingType == "keybind" then
         local keybind = Keybind.new(parent, settingConfig.value, settingName, settingConfig.description)
+        keybind.Container.LayoutOrder = layoutOrder
         keybind.KeyChanged:Connect(function(newValue)
             ModuleManager:UpdateModuleSetting(moduleName, settingName, newValue)
         end)
@@ -477,7 +487,7 @@ function UIMain:CreateSettingsCategory(layoutOrder)
         settingsContent.Size = UDim2.new(1, 0, 0, settingsContentList.AbsoluteContentSize.Y)
     end)
     
-    -- Add settings options
+    -- Add settings options using components
     local uiScaleSlider = Slider.new(settingsContent, 0.5, 2, 1, "UI Scale", "Adjust the size of the UI")
     local animSpeedSlider = Slider.new(settingsContent, 0.1, 1, 0.3, "Animation Speed", "Adjust animation speed")
     
